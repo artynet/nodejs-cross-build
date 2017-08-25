@@ -96,14 +96,14 @@ revision=`echo $nodever | cut -d. -f3`
 
 # echo "$major.$minor.$revision"
 
-# applying specific patches for node native tools
+applying specific patches for node native tools
 if [[ $major == 7 || ($major == 8 && $minor -le 2) ]]
 then
     # preparing sources
     untar ${1} linux
-    untar ${1} rpi3
+    untar ${1} mips-openwrt-musl
     echo -e "\nFixing v8.gyp file...\n"
-    fixv8gyp ${1} rpi3
+    fixv8gyp ${1} mips-openwrt-musl
     echo $var
     sleep 1
     # performing host build
@@ -115,7 +115,7 @@ else
 fi
 
 # exporting compilers
-export STAGING_DIR=$HOME/x-tools/mips-openwrt-linux-musl
+export STAGING_DIR=/opt/toolchain-540-musl-ctng
 export PATH=$STAGING_DIR/bin:$PATH
 
 # MIPS openwrt cross-compile exports

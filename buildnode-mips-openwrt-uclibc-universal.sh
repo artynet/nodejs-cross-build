@@ -101,9 +101,9 @@ if [[ $major == 7 || ($major == 8 && $minor -le 2) ]]
 then
     # preparing sources
     untar ${1} linux
-    untar ${1} rpi3
+    untar ${1} mips-openwrt-uclibc
     echo -e "\nFixing v8.gyp file...\n"
-    fixv8gyp ${1} rpi3
+    fixv8gyp ${1} mips-openwrt-uclibc
     echo $var
     sleep 1
     # performing host build
