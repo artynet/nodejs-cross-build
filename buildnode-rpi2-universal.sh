@@ -11,10 +11,10 @@ clean () {
     rm -rvf node-v$1 node-v$1-rpi2 node-v$1-linux
 }
 
-fixv7 () {
+fixv8gyp () {
 
     var=$(readlink -f $CURDIR/node-v${1}-linux)"/out/Release/mkpeephole"
-    sed "s#<(mkpeephole_exec)#$var#g" -i $CURDIR/node-v${1}-linux/deps/v8/src/v8.gyp
+    sed "s#<(mkpeephole_exec)#$var#g" -i $CURDIR/node-v${1}-${2}/deps/v8/src/v8.gyp
 }
 
 if [ -z ${1} ]; then
@@ -27,26 +27,6 @@ echo "cleaning..."
 clean ${1}
 
 sleep 1
-
-# exporting compilers
-export PATH=/opt/armv7-rpi2-linux-gnueabihf/bin:$PATH
-
-# raspberry pi 2 cross-compile exports
-export HOST="armv7-rpi2-linux-gnueabihf"
-export CPP="${HOST}-gcc -E"
-export STRIP="${HOST}-strip"
-export OBJCOPY="${HOST}-objcopy"
-export AR="${HOST}-ar"
-export RANLIB="${HOST}-ranlib"
-export LD="${HOST}-g++"
-export OBJDUMP="${HOST}-objdump"
-export CC="${HOST}-gcc"
-export CXX="${HOST}-g++"
-export NM="${HOST}-nm"
-export AS="${HOST}-as"
-export PS1="[${HOST}] \w$ "
-
-# update git repo, pull new version
 
 untar () {
 
@@ -66,6 +46,7 @@ untar () {
 hostbuild () {
 
     cd node-v${1}-linux/
+    patch -p1 < $CURDIR/patches/no-git-check.patch
 
     # clear out old builds
     echo "cleaning..."
@@ -75,12 +56,16 @@ hostbuild () {
     echo "building..."
     export CONFIG_FLAGS="--without-snapshot --with-intl=none"
     sed -i -e s/small-icu/none/g Makefile
-    make -j3 binary
+    time make -j3 binary
 
 }
 
 crossbuild () {
 
+    cd node-v${1}-rpi2/
+    patch -p1 < $CURDIR/patches/no-git-check.patch
+
+    # exportcross
     # clear out old builds
     echo "cleaning..."
     make clean
@@ -91,26 +76,55 @@ crossbuild () {
     export CONFIG_FLAGS="--without-snapshot --with-intl=none"
     sed -i -e s/small-icu/none/g Makefile
     sed -i -e "s/-\$(ARCH)/\-armv7l-rpi2/g" Makefile
-    make -j3 binary
+    time make -j3 binary
 
 }
 
-nodever=$(echo "${1}" | sed s/[.].*$//)
+# update git repo, pull new version
+nodever=$1
+major=`echo $nodever | cut -d. -f1`
+minor=`echo $nodever | cut -d. -f2`
+revision=`echo $nodever | cut -d. -f3`
 
-# applying specific patches for node v7 native tools
-if [ ${nodever} = 7 ]
+# echo "$major.$minor.$revision"
+
+# applying specific patches for node native tools
+if [[ $major == 7 || ($major == 8 && $minor -le 2) ]]
 then
+    # preparing sources
     untar ${1} linux
-    echo "ok v7"
-    fixv7 ${1}
+    untar ${1} rpi2
+    echo -e "\nFixing v8.gyp file...\n"
+    fixv8gyp ${1} rpi2
     echo $var
     sleep 1
+    # performing host build
+    hostbuild ${1}
+    cd $CURDIR
+else
+    # simply extracting tarball for cross-build
+    untar ${1} rpi2
 fi
 
+# exporting compilers
+export PATH=/opt/armv7-rpi2-linux-gnueabihf/bin:$PATH
 
-hostbuild ${1}
+# raspberry pi 2 cross-compile exports
+export HOST="armv7-rpi2-linux-gnueabihf"
+export CPP="${HOST}-gcc -E"
+export STRIP="${HOST}-strip"
+export OBJCOPY="${HOST}-objcopy"
+export AR="${HOST}-ar"
+export RANLIB="${HOST}-ranlib"
+export LD="${HOST}-g++"
+export OBJDUMP="${HOST}-objdump"
+export CC="${HOST}-gcc"
+export CXX="${HOST}-g++"
+export NM="${HOST}-nm"
+export AS="${HOST}-as"
+export PS1="[${HOST}] \w$ "
+
+crossbuild $1
 cd $CURDIR
 
-crossbuild
-
-cd $CURDIR
+echo -e "\nFinished !\n"
