@@ -4,7 +4,11 @@
 ## Use like this:
 ## ./buildnode.sh <node_tarball_version>
 
+# setting working folder
 CURDIR=$PWD
+
+# creating tarball folder
+mkdir -p $CURDIR/TARBALL
 
 clean () {
 
@@ -23,7 +27,7 @@ if [ -z ${1} ]; then
 fi
 
 # clear out old builds
-echo "cleaning..."
+echo -e "\ncleaning...\n"
 clean ${1}
 
 sleep 1
@@ -88,6 +92,19 @@ crossbuild () {
 
 }
 
+checkhostbuild () {
+
+    if [ -e $CURDIR/node-v${1}-linux/out/Release/mkpeephole ]
+    then
+        echo -e "\nskipping host build....\n"
+    else
+        untar ${1} linux
+        hostbuild ${1}
+        mv $CURDIR/node-v${1}-linux/*.tar.* $CURDIR/TARBALL/
+    fi
+
+}
+
 # update git repo, pull new version
 nodever=$1
 major=`echo $nodever | cut -d. -f1`
@@ -96,18 +113,17 @@ revision=`echo $nodever | cut -d. -f3`
 
 # echo "$major.$minor.$revision"
 
-applying specific patches for node native tools
+# applying specific patches for node native tools
 if [[ $major == 7 || ($major == 8 && $minor -le 2) ]]
 then
     # preparing sources
-    untar ${1} linux
     untar ${1} mips-openwrt-musl
     echo -e "\nFixing v8.gyp file...\n"
     fixv8gyp ${1} mips-openwrt-musl
     echo $var
     sleep 1
     # performing host build
-    hostbuild ${1}
+    checkhostbuild ${1}
     cd $CURDIR
 else
     # simply extracting tarball for cross-build
@@ -115,7 +131,7 @@ else
 fi
 
 # exporting compilers
-export STAGING_DIR=/opt/toolchain-540-musl-ctng
+export STAGING_DIR=$HOME/x-tools/mips-openwrt-linux-musl
 export PATH=$STAGING_DIR/bin:$PATH
 
 # MIPS openwrt cross-compile exports
@@ -133,7 +149,15 @@ export NM="${HOST}-nm"
 export AS="${HOST}-as"
 export PS1="[${HOST}] \w$ "
 
+# making actual cross build
 crossbuild $1
 cd $CURDIR
+
+# moving tarballs of cross-build
+mv $CURDIR/node-v${1}-mips-openwrt-musl/*.tar.* $CURDIR/TARBALL
+
+# spring cleaning
+echo -e "\ncleaning again...\n"
+clean ${1}
 
 echo -e "\nFinished !\n"
