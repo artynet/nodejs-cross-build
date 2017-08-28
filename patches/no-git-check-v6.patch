@@ -1,0 +1,22 @@
+diff --git a/Makefile b/Makefile
+index cfbd426033..5aba712f8a 100644
+--- a/Makefile
++++ b/Makefile
+@@ -535,17 +535,6 @@ release-only:
+ 		echo 'Please update REPLACEME in Added: tags in doc/api/*.md (See doc/releases.md)' ; \
+ 		exit 1 ; \
+ 	fi
+-	@if [ "$(shell git status --porcelain | egrep -v '^\?\? ')" = "" ]; then \
+-		exit 0 ; \
+-	else \
+-		echo "" >&2 ; \
+-		echo "The git repository is not clean." >&2 ; \
+-		echo "Please commit changes before building release tarball." >&2 ; \
+-		echo "" >&2 ; \
+-		git status --porcelain | egrep -v '^\?\?' >&2 ; \
+-		echo "" >&2 ; \
+-		exit 1 ; \
+-	fi
+ 	@if [ "$(DISTTYPE)" != "release" -o "$(RELEASE)" = "1" ]; then \
+ 		exit 0; \
+ 	else \
