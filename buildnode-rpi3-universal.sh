@@ -30,13 +30,17 @@ sleep 1
 
 untar () {
 
-    if [ ! -e node-v${1}.tar.gz ]
+    mkdir -p $CURDIR/TARBALL
+
+    local VERSION=${1}
+
+    if [ ! -e $CURDIR/TARBALL/node-v${1}.tar.xz ]
     then
-        echo "Downloading node source ${VERSION}-release..."
-        wget http://nodejs.org/dist/v${1}/node-v${1}.tar.gz
-        tar xvf node-v${1}.tar.gz
+        echo "Downloading node source v${VERSION}-release..."
+        curl -o $CURDIR/TARBALL/node-v${1}.tar.xz http://nodejs.org/dist/v${1}/node-v${1}.tar.xz
+        tar xvf $CURDIR/TARBALL/node-v${1}.tar.xz -C $CURDIR
     else
-        tar xvf node-v${1}.tar.gz
+        tar xvf $CURDIR/TARBALL/node-v${1}.tar.xz -C $CURDIR
     fi
 
     mv node-v${1}/ node-v${1}-${2}/
@@ -46,7 +50,7 @@ untar () {
 hostbuild () {
 
     cd node-v${1}-linux/
-    patch -p1 < $CURDIR/patches/no-git-check.patch
+    patch -p1 < $CURDIR/patches/no-git-check-v${major}.patch
 
     # clear out old builds
     echo "cleaning..."
@@ -63,7 +67,7 @@ hostbuild () {
 crossbuild () {
 
     cd node-v${1}-rpi3/
-    patch -p1 < $CURDIR/patches/no-git-check.patch
+    patch -p1 < $CURDIR/patches/no-git-check-v${major}.patch
 
     # exportcross
     # clear out old builds
