@@ -41,7 +41,7 @@ untar () {
     if [ ! -e $CURDIR/TARBALL/node-v${1}.tar.xz ]
     then
         echo "Downloading node source v${VERSION}-release..."
-        wget -v http://nodejs.org/dist/v${1}/node-v${1}.tar.xz -o $CURDIR/TARBALL/node-v${1}.tar.xz
+        curl -o $CURDIR/TARBALL/node-v${1}.tar.xz http://nodejs.org/dist/v${1}/node-v${1}.tar.xz
         tar xvf $CURDIR/TARBALL/node-v${1}.tar.xz -C $CURDIR
     else
         tar xvf $CURDIR/TARBALL/node-v${1}.tar.xz -C $CURDIR
@@ -54,7 +54,7 @@ untar () {
 hostbuild () {
 
     cd node-v${1}-linux/
-    patch -p1 < $CURDIR/patches/no-git-check.patch
+    patch -p1 < $CURDIR/patches/no-git-check-v${major}.patch
 
     # clear out old builds
     echo "cleaning..."
@@ -73,7 +73,7 @@ crossbuild () {
     cd node-v${1}-i486-openwrt-uclibc/
 
     # applying general purpose use patches
-    patch -p1 < $CURDIR/patches/no-git-check.patch
+    patch -p1 < $CURDIR/patches/no-git-check-v${major}.patch
 
     # applying uClibc specific patches
     for i in ../node${major}-uclibc-patches/*.patch
