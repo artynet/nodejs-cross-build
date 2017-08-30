@@ -81,7 +81,8 @@ patchbuild () {
             patch -p1 < $i
         done
     else
-        echo -e "\nno need to apply patches....\n"
+        # applying general purpose use patches
+        patch -p1 < $CURDIR/patches/no-git-check-legacy.patch
     fi
 
 }
@@ -101,6 +102,27 @@ crossbuild () {
     echo "building..."
     export ARCH=mipsel DESTCPU=mipsel
     export CONFIG_FLAGS="--without-snapshot --with-intl=none --with-mips-float-abi=soft --dest-os=linux"
+    sed -i -e s/small-icu/none/g Makefile
+    sed -i -e "s/-\$(ARCH)/\-mipsel-openwrt-uclibc/g" Makefile
+    time make -j3 binary
+
+}
+
+crosslegacy () {
+
+    cd node-v${1}-mipsel-openwrt-uclibc/
+
+    patchbuild ${major}
+
+    # exportcross
+    # clear out old builds
+    echo "cleaning..."
+    make clean
+
+    # build
+    echo "building..."
+    export ARCH=mipsel DESTCPU=mipsel
+    export CONFIG_FLAGS="--without-snapshot --with-mips-float-abi=soft --dest-os=linux"
     sed -i -e s/small-icu/none/g Makefile
     sed -i -e "s/-\$(ARCH)/\-mipsel-openwrt-uclibc/g" Makefile
     time make -j3 binary
@@ -165,7 +187,17 @@ export AS="${HOST}-as"
 export PS1="[${HOST}] \w$ "
 
 # making actual cross build
-crossbuild $1
+if [[ $major == 6 || $major == 7 || $major == 8 ]]
+then
+    crossbuild $1
+elif [ $major == 0 ]
+then
+    crosslegacy $1
+else
+    echo -e "\nVersion not supported !\n"
+    exit 0
+fi
+
 cd $CURDIR
 
 # moving tarballs of cross-build
